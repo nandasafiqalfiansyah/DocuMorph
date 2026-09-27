@@ -27,6 +27,18 @@ export function formatBytes(bytes: number, decimals = 2) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+// Sanitize text for standard PDF fonts (WinAnsi / Latin-1 encoding in pdf-lib)
+export function sanitizePdfText(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[\u2018\u2019]/g, "'") // smart single quotes
+    .replace(/[\u201C\u201D]/g, '"') // smart double quotes
+    .replace(/[\u2013\u2014]/g, '-') // en-dash, em-dash
+    .replace(/\u2026/g, '...') // ellipsis
+    .replace(/[\u2022\u25CF\u25CB]/g, '-') // bullet characters
+    .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' '); // replace unsupported characters/emojis
+}
+
 // 1. MERGE PDF
 export async function mergePDFs(
   files: File[],
@@ -717,7 +729,8 @@ export async function convertDocxToPdf(
   let pageNum = 1;
 
   // Add document header
-  currentPage.drawText(file.name.replace(/\.[^/.]+$/, ''), {
+  const safeDocTitle = sanitizePdfText(file.name.replace(/\.[^/.]+$/, '')) || 'Dokumen Word';
+  currentPage.drawText(safeDocTitle, {
     x: margin,
     y: y,
     size: 16,
@@ -728,7 +741,8 @@ export async function convertDocxToPdf(
 
   for (const line of lines) {
     // Word-wrap logic
-    const words = line.split(' ');
+    const sanitizedLine = sanitizePdfText(line);
+    const words = sanitizedLine.split(' ');
     let currentLine = '';
 
     for (const word of words) {
@@ -857,7 +871,7 @@ export async function convertPptxToPdf(
     let y = slideH - 110;
     if (texts.length > 0) {
       // First line as Slide Title
-      page.drawText(texts[0].slice(0, 80), {
+      page.drawText(sanitizePdfText(texts[0].slice(0, 80)), {
         x: 50,
         y,
         size: 22,
@@ -868,7 +882,7 @@ export async function convertPptxToPdf(
 
       // Sub-bullets
       for (let i = 1; i < Math.min(texts.length, 12); i++) {
-        page.drawText(`•  ${texts[i].slice(0, 100)}`, {
+        page.drawText(`-  ${sanitizePdfText(texts[i].slice(0, 100))}`, {
           x: 60,
           y,
           size: 13,
@@ -976,7 +990,7 @@ export async function convertExcelToPdf(
       for (let cIdx = 0; cIdx < colCount; cIdx++) {
         const val = row[cIdx] !== undefined ? String(row[cIdx]).trim() : '';
         const cellX = margin + cIdx * colWidth + 5;
-        const truncated = val.length > 25 ? val.slice(0, 24) + '...' : val;
+        const truncated = sanitizePdfText(val.length > 25 ? val.slice(0, 24) + '...' : val);
 
         currentPage.drawText(truncated, {
           x: cellX,
@@ -1021,7 +1035,7 @@ export async function convertHtmlToPdf(
   let y = pageH - margin;
 
   // Header Title
-  const title = doc.querySelector('h1')?.textContent || docTitle || 'Dokumen HTML';
+  const title = sanitizePdfText(doc.querySelector('h1')?.textContent || docTitle || 'Dokumen HTML');
   page.drawText(title, {
     x: margin,
     y,
@@ -1049,7 +1063,8 @@ export async function convertHtmlToPdf(
     const lines = rawText.split('\n').filter((l) => l.trim().length > 0);
     for (const line of lines) {
       if (y < margin + 20) break;
-      page.drawText(line.slice(0, 80), {
+      const cleanLine = sanitizePdfText(line.slice(0, 80));
+      page.drawText(cleanLine, {
         x: margin,
         y,
         size: 10,
@@ -1062,7 +1077,7 @@ export async function convertHtmlToPdf(
     elements.forEach((el) => {
       if (y < margin + 30) return;
       const tag = el.tagName.toLowerCase();
-      const text = el.textContent?.trim() || '';
+      const text = sanitizePdfText(el.textContent?.trim() || '');
       if (!text) return;
 
       if (tag === 'h2') {
@@ -1085,7 +1100,7 @@ export async function convertHtmlToPdf(
         });
         y -= 18;
       } else if (tag === 'li') {
-        page.drawText(`•  ${text.slice(0, 85)}`, {
+        page.drawText(`-  ${text.slice(0, 85)}`, {
           x: margin + 12,
           y,
           size: 10,
@@ -1192,7 +1207,8 @@ export async function editPDF(
   const g = parseInt(hex.substring(2, 4), 16) / 255 || 0.1;
   const b = parseInt(hex.substring(4, 6), 16) / 255 || 0.2;
 
-  const textWidth = font.widthOfTextAtSize(options.text, options.fontSize);
+  const cleanText = sanitizePdfText(options.text) || ' ';
+  const textWidth = font.widthOfTextAtSize(cleanText, options.fontSize);
   const textHeight = options.fontSize;
 
   let x = 50;
@@ -1234,7 +1250,7 @@ export async function editPDF(
     });
   }
 
-  page.drawText(options.text, {
+  page.drawText(cleanText, {
     x,
     y,
     size: options.fontSize,
@@ -1299,7 +1315,8 @@ export async function signPDF(
   // Optional signature date caption below
   if (options.signDateText) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    page.drawText(options.signDateText, {
+    const cleanDate = sanitizePdfText(options.signDateText);
+    page.drawText(cleanDate, {
       x,
       y: y - 12,
       size: 8,
@@ -1336,6 +1353,7 @@ export async function watermarkPDF(
 
   onProgress?.(40, 'Mempersiapkan teks tanda air...');
   const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const cleanWatermark = sanitizePdfText(options.text) || 'CONFIDENTIAL';
 
   const hex = options.colorHex.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16) / 255 || 0.8;
@@ -1349,11 +1367,11 @@ export async function watermarkPDF(
     );
     const page = pages[i];
     const { width, height } = page.getSize();
-    const textWidth = font.widthOfTextAtSize(options.text, options.fontSize);
+    const textWidth = font.widthOfTextAtSize(cleanWatermark, options.fontSize);
 
     if (options.isDiagonal) {
       // 45 degree diagonal across center
-      page.drawText(options.text, {
+      page.drawText(cleanWatermark, {
         x: (width - textWidth) / 2,
         y: height / 2 - 20,
         size: options.fontSize,
@@ -1364,7 +1382,7 @@ export async function watermarkPDF(
       });
     } else {
       // Horizontal center
-      page.drawText(options.text, {
+      page.drawText(cleanWatermark, {
         x: (width - textWidth) / 2,
         y: height / 2,
         size: options.fontSize,
