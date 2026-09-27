@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { PDF_TOOLS } from './data/tools';
-import { ToolDef, ToolCategory } from './types';
+import { getLocalizedTools } from './data/tools';
+import { ToolDef, ToolCategory, Language } from './types';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { ToolGrid } from './components/ToolGrid';
@@ -13,14 +13,26 @@ import { BrandModal } from './components/BrandModal';
 
 export default function App() {
   const [currentBrand, setCurrentBrand] = useState('DocuMorph');
+  // Default language is English ('en') as requested:
+  // "add trasnalste bahasa inggris dan default bahasa nya buat bahasa inggris"
+  const [currentLang, setCurrentLang] = useState<Language>('en');
   const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolDef | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory>('all');
 
+  // Localized tools collection for currently active language
+  const tools = useMemo(() => getLocalizedTools(currentLang), [currentLang]);
+
+  // Keep activeTool synchronized if the user switches language while in workspace
+  const currentActiveTool = useMemo(() => {
+    if (!activeTool) return null;
+    return tools.find((t) => t.id === activeTool.id) || activeTool;
+  }, [activeTool, tools]);
+
   // Filter tools based on category and search query
   const filteredTools = useMemo(() => {
-    return PDF_TOOLS.filter((tool) => {
+    return tools.filter((tool) => {
       const matchCat =
         selectedCategory === 'all' || tool.category === selectedCategory;
 
@@ -34,7 +46,7 @@ export default function App() {
 
       return matchCat && matchSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [tools, selectedCategory, searchQuery]);
 
   const scrollToSection = (id: string) => {
     if (activeTool) {
@@ -49,7 +61,7 @@ export default function App() {
   };
 
   const handleSelectToolById = (id: string) => {
-    const found = PDF_TOOLS.find((t) => t.id === id);
+    const found = tools.find((t) => t.id === id);
     if (found) {
       setActiveTool(found);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -69,6 +81,8 @@ export default function App() {
     <div className="min-h-screen bg-[#0c0f17] text-slate-100 flex flex-col font-sans selection:bg-rose-500/30 selection:text-rose-200">
       <Navbar
         currentBrand={currentBrand}
+        currentLang={currentLang}
+        onChangeLang={setCurrentLang}
         onOpenBrandModal={() => setIsBrandModalOpen(true)}
         onScrollToTools={() => scrollToSection('tools-section')}
         onScrollToFeatures={() => scrollToSection('features-section')}
@@ -78,16 +92,18 @@ export default function App() {
       />
 
       <main className="flex-1">
-        {activeTool ? (
+        {currentActiveTool ? (
           <div className="pt-6 pb-20">
             <ActiveToolWorkspace
-              tool={activeTool}
+              tool={currentActiveTool}
+              currentLang={currentLang}
               onBack={handleBackToCatalog}
             />
           </div>
         ) : (
           <>
             <Hero
+              currentLang={currentLang}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               selectedCategory={selectedCategory}
@@ -96,6 +112,7 @@ export default function App() {
             />
 
             <ToolGrid
+              currentLang={currentLang}
               tools={filteredTools}
               onSelectTool={handleSelectTool}
               onResetFilter={() => {
@@ -104,15 +121,16 @@ export default function App() {
               }}
             />
 
-            <Features />
-            <HowItWorks />
-            <FAQ />
+            <Features currentLang={currentLang} />
+            <HowItWorks currentLang={currentLang} />
+            <FAQ currentLang={currentLang} />
           </>
         )}
       </main>
 
       <Footer
         currentBrand={currentBrand}
+        currentLang={currentLang}
         onOpenBrandModal={() => setIsBrandModalOpen(true)}
         onScrollToTools={() => scrollToSection('tools-section')}
         onSelectToolById={handleSelectToolById}
@@ -122,6 +140,7 @@ export default function App() {
         isOpen={isBrandModalOpen}
         onClose={() => setIsBrandModalOpen(false)}
         currentBrand={currentBrand}
+        currentLang={currentLang}
         onSelectBrand={(newName) => {
           setCurrentBrand(newName);
         }}
@@ -129,4 +148,3 @@ export default function App() {
     </div>
   );
 }
-

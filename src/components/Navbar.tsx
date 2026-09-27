@@ -8,18 +8,19 @@ import {
   Shield,
   Search,
   ArrowUpRight,
-  Layers,
-  FileCheck,
-  CheckCircle2,
   SlidersHorizontal,
+  Globe,
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
-import { PDF_TOOLS } from '../data/tools';
-import { ToolDef } from '../types';
+import { getLocalizedTools, TOOL_BADGES } from '../data/tools';
+import { Language, ToolDef } from '../types';
 import { ToolIcon } from './ToolIcon';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface NavbarProps {
   currentBrand: string;
+  currentLang: Language;
+  onChangeLang: (lang: Language) => void;
   onOpenBrandModal: () => void;
   onScrollToTools: () => void;
   onScrollToFeatures: () => void;
@@ -28,32 +29,10 @@ interface NavbarProps {
   onSelectToolById: (id: string) => void;
 }
 
-// Badges and metadata for each tool
-const TOOL_BADGES: Record<string, { label: string; bg: string; text: string }> = {
-  'edit-pdf': { label: 'Teks & Catatan', bg: 'bg-pink-500/15', text: 'text-pink-300' },
-  'sign-pdf': { label: 'TTD Digital', bg: 'bg-indigo-500/15', text: 'text-indigo-300' },
-  'watermark-pdf': { label: 'Cap Air', bg: 'bg-teal-500/15', text: 'text-teal-300' },
-  'crop-pdf': { label: 'Margin Presisi', bg: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  'merge-pdf': { label: 'Paling Dicari', bg: 'bg-blue-500/15', text: 'text-blue-300' },
-  'split-pdf': { label: 'Pisah Berkas', bg: 'bg-purple-500/15', text: 'text-purple-300' },
-  'rotate-pdf': { label: 'Rotasi 360°', bg: 'bg-amber-500/15', text: 'text-amber-300' },
-  'organize-pdf': { label: 'Visual Urutan', bg: 'bg-purple-500/15', text: 'text-purple-300' },
-  'remove-pages': { label: 'Hapus Halaman', bg: 'bg-rose-500/15', text: 'text-rose-300' },
-  'extract-pages': { label: 'Ekstrak Berkas', bg: 'bg-sky-500/15', text: 'text-sky-300' },
-  'pdf-to-word': { label: 'Ke DOCX', bg: 'bg-blue-500/15', text: 'text-blue-300' },
-  'pdf-to-excel': { label: 'Ke XLSX', bg: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  'pdf-to-powerpoint': { label: 'Ke PPTX', bg: 'bg-orange-500/15', text: 'text-orange-300' },
-  'pdf-to-jpg': { label: 'Ekstrak Gambar', bg: 'bg-amber-500/15', text: 'text-amber-300' },
-  'compress-pdf': { label: 'Kecilkan MB', bg: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  'jpg-to-pdf': { label: 'Foto ke PDF', bg: 'bg-rose-500/15', text: 'text-rose-300' },
-  'word-to-pdf': { label: 'DOCX ke PDF', bg: 'bg-sky-500/15', text: 'text-sky-300' },
-  'powerpoint-to-pdf': { label: 'PPTX ke PDF', bg: 'bg-orange-500/15', text: 'text-orange-300' },
-  'excel-to-pdf': { label: 'XLSX ke PDF', bg: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  'html-to-pdf': { label: 'Web ke PDF', bg: 'bg-cyan-500/15', text: 'text-cyan-300' },
-};
-
 export const Navbar: React.FC<NavbarProps> = ({
   currentBrand,
+  currentLang,
+  onChangeLang,
   onOpenBrandModal,
   onScrollToTools,
   onScrollToFeatures,
@@ -70,44 +49,47 @@ export const Navbar: React.FC<NavbarProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownTimeoutRef = useRef<any>(null);
 
+  const t = TRANSLATIONS[currentLang].nav;
+  const allTools = useMemo(() => getLocalizedTools(currentLang), [currentLang]);
+
   // Group definitions
   const editAndSignTools = useMemo(
-    () => PDF_TOOLS.filter((t) => ['edit-pdf', 'sign-pdf', 'watermark-pdf', 'crop-pdf'].includes(t.id)),
-    []
+    () => allTools.filter((tool) => ['edit-pdf', 'sign-pdf', 'watermark-pdf', 'crop-pdf'].includes(tool.id)),
+    [allTools]
   );
 
   const organizeTools = useMemo(
-    () => PDF_TOOLS.filter((t) => ['merge-pdf', 'split-pdf', 'rotate-pdf', 'organize-pdf', 'remove-pages', 'extract-pages'].includes(t.id)),
-    []
+    () => allTools.filter((tool) => ['merge-pdf', 'split-pdf', 'rotate-pdf', 'organize-pdf', 'remove-pages', 'extract-pages'].includes(tool.id)),
+    [allTools]
   );
 
   const convertFromPdfTools = useMemo(
-    () => PDF_TOOLS.filter((t) => ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-jpg', 'compress-pdf'].includes(t.id)),
-    []
+    () => allTools.filter((tool) => ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-jpg', 'compress-pdf'].includes(tool.id)),
+    [allTools]
   );
 
   const convertToPdfTools = useMemo(
-    () => PDF_TOOLS.filter((t) => ['jpg-to-pdf', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf'].includes(t.id)),
-    []
+    () => allTools.filter((tool) => ['jpg-to-pdf', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf'].includes(tool.id)),
+    [allTools]
   );
 
   // Filtered tools for the dropdown search
   const filteredDropdownTools = useMemo(() => {
     const q = dropdownSearch.toLowerCase().trim();
-    return PDF_TOOLS.filter((t) => {
-      const matchText = !q || t.title.toLowerCase().includes(q) || t.shortDesc.toLowerCase().includes(q) || t.id.includes(q);
+    return allTools.filter((tool) => {
+      const matchText = !q || tool.title.toLowerCase().includes(q) || tool.shortDesc.toLowerCase().includes(q) || tool.id.includes(q);
       if (!matchText) return false;
 
       if (dropdownFilter === 'all') return true;
-      if (dropdownFilter === 'edit') return ['edit-pdf', 'sign-pdf', 'watermark-pdf', 'crop-pdf'].includes(t.id);
-      if (dropdownFilter === 'organize') return ['merge-pdf', 'split-pdf', 'rotate-pdf', 'organize-pdf', 'remove-pages', 'extract-pages'].includes(t.id);
-      if (dropdownFilter === 'from-pdf') return ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-jpg', 'compress-pdf'].includes(t.id);
-      if (dropdownFilter === 'to-pdf') return ['jpg-to-pdf', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf'].includes(t.id);
+      if (dropdownFilter === 'edit') return ['edit-pdf', 'sign-pdf', 'watermark-pdf', 'crop-pdf'].includes(tool.id);
+      if (dropdownFilter === 'organize') return ['merge-pdf', 'split-pdf', 'rotate-pdf', 'organize-pdf', 'remove-pages', 'extract-pages'].includes(tool.id);
+      if (dropdownFilter === 'from-pdf') return ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-jpg', 'compress-pdf'].includes(tool.id);
+      if (dropdownFilter === 'to-pdf') return ['jpg-to-pdf', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf'].includes(tool.id);
       return true;
     });
-  }, [dropdownSearch, dropdownFilter]);
+  }, [allTools, dropdownSearch, dropdownFilter]);
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside or escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -151,18 +133,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Filter for mobile
   const filteredMobileTools = useMemo(() => {
     const q = mobileSearch.toLowerCase().trim();
-    return PDF_TOOLS.filter((t) => {
-      const matchText = !q || t.title.toLowerCase().includes(q) || t.shortDesc.toLowerCase().includes(q);
+    return allTools.filter((tool) => {
+      const matchText = !q || tool.title.toLowerCase().includes(q) || tool.shortDesc.toLowerCase().includes(q);
       if (!matchText) return false;
 
       if (mobileActiveCategory === 'all') return true;
-      if (mobileActiveCategory === 'edit') return ['edit-pdf', 'sign-pdf', 'watermark-pdf', 'crop-pdf'].includes(t.id);
-      if (mobileActiveCategory === 'organize') return ['merge-pdf', 'split-pdf', 'rotate-pdf', 'organize-pdf', 'remove-pages', 'extract-pages'].includes(t.id);
-      if (mobileActiveCategory === 'from-pdf') return ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-jpg', 'compress-pdf'].includes(t.id);
-      if (mobileActiveCategory === 'to-pdf') return ['jpg-to-pdf', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf'].includes(t.id);
+      if (mobileActiveCategory === 'edit') return ['edit-pdf', 'sign-pdf', 'watermark-pdf', 'crop-pdf'].includes(tool.id);
+      if (mobileActiveCategory === 'organize') return ['merge-pdf', 'split-pdf', 'rotate-pdf', 'organize-pdf', 'remove-pages', 'extract-pages'].includes(tool.id);
+      if (mobileActiveCategory === 'from-pdf') return ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-jpg', 'compress-pdf'].includes(tool.id);
+      if (mobileActiveCategory === 'to-pdf') return ['jpg-to-pdf', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf'].includes(tool.id);
       return true;
     });
-  }, [mobileSearch, mobileActiveCategory]);
+  }, [allTools, mobileSearch, mobileActiveCategory]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#0c0f17]/95 backdrop-blur-md">
@@ -176,10 +158,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               onScrollToTools();
             }}
             className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2 group hover:text-rose-400 transition-colors min-w-0"
-            title={`${currentBrand} - Platform PDF Tools`}
+            title={`${currentBrand} - All-in-One PDF Tools`}
           >
             <BrandLogo size={30} className="shrink-0" />
-            <span className="font-extrabold tracking-tight truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none text-white group-hover:text-rose-300 transition-colors">
+            <span className="font-extrabold tracking-tight truncate max-w-[110px] xs:max-w-[150px] sm:max-w-none text-white group-hover:text-rose-300 transition-colors">
               {currentBrand}
             </span>
           </a>
@@ -203,9 +185,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'hover:text-white hover:bg-slate-850/60'
               }`}
             >
-              <span className="font-semibold">Fitur PDF Lengkap</span>
+              <span className="font-semibold">{t.featuresDropdown}</span>
               <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                20 Alat
+                {t.toolsBadge}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
@@ -230,10 +212,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <div>
                         <div className="text-xs font-bold text-white uppercase tracking-wider">
-                          Katalog 20 Alat Dokumen PDF
+                          {t.catalogTitle}
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          Semua fitur bebas digunakan tanpa akun & gratis selamanya
+                          {t.catalogSubtitle}
                         </div>
                       </div>
                     </div>
@@ -245,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         type="text"
                         value={dropdownSearch}
                         onChange={(e) => setDropdownSearch(e.target.value)}
-                        placeholder="Cari alat (misal: word, tanda tangan)..."
+                        placeholder={t.searchPlaceholder}
                         className="w-full pl-8 pr-7 py-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-rose-500 transition-colors"
                       />
                       {dropdownSearch && (
@@ -263,14 +245,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="flex flex-wrap items-center gap-1.5 mb-4 pb-2 text-xs">
                     <span className="text-[11px] font-semibold text-slate-400 mr-1 flex items-center gap-1">
                       <SlidersHorizontal className="w-3 h-3 text-slate-400" />
-                      Filter:
+                      {t.filterLabel}
                     </span>
                     {[
-                      { id: 'all', label: `Semua (${PDF_TOOLS.length})` },
-                      { id: 'edit', label: `✏️ Edit & TTD (${editAndSignTools.length})` },
-                      { id: 'organize', label: `📑 Organisasi (${organizeTools.length})` },
-                      { id: 'from-pdf', label: `📤 Dari PDF (${convertFromPdfTools.length})` },
-                      { id: 'to-pdf', label: `📥 Ke PDF (${convertToPdfTools.length})` },
+                      { id: 'all', label: t.filterAll },
+                      { id: 'edit', label: t.filterEdit },
+                      { id: 'organize', label: t.filterOrganize },
+                      { id: 'from-pdf', label: t.filterFromPdf },
+                      { id: 'to-pdf', label: t.filterToPdf },
                     ].map((f) => (
                       <button
                         key={f.id}
@@ -289,42 +271,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {/* Multi-Column Feature Catalog */}
                   {filteredDropdownTools.length === 0 ? (
                     <div className="p-8 text-center bg-slate-950/40 rounded-2xl border border-slate-800 my-2">
-                      <p className="text-xs text-slate-400">Tidak ada alat yang sesuai dengan kata kunci "{dropdownSearch}".</p>
+                      <p className="text-xs text-slate-400">{t.noToolsMatch} "{dropdownSearch}".</p>
                       <button
                         onClick={() => {
                           setDropdownSearch('');
                           setDropdownFilter('all');
                         }}
-                        className="mt-2 text-xs text-rose-400 hover:underline"
+                        className="mt-2 text-xs text-rose-400 hover:underline cursor-pointer"
                       >
-                        Tampilkan Semua 20 Alat
+                        {t.showAllTools}
                       </button>
                     </div>
                   ) : dropdownSearch ? (
                     // Flat search results grid
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
-                      {filteredDropdownTools.map((t) => {
-                        const badge = TOOL_BADGES[t.id];
+                      {filteredDropdownTools.map((tool) => {
+                        const badge = TOOL_BADGES[tool.id]?.[currentLang];
                         return (
                           <button
-                            key={t.id}
-                            onClick={() => handleToolClick(t.id)}
+                            key={tool.id}
+                            onClick={() => handleToolClick(tool.id)}
                             className="w-full text-left p-2.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all group flex items-start gap-2.5 cursor-pointer shadow-sm"
                           >
                             <div
                               className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-105"
-                              style={{ backgroundColor: `${t.accentColor}20` }}
+                              style={{ backgroundColor: `${tool.accentColor}20` }}
                             >
-                              <ToolIcon name={t.icon} className="w-4 h-4" color={t.accentColor} />
+                              <ToolIcon name={tool.icon} className="w-4 h-4" color={tool.accentColor} />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs font-semibold text-slate-100 group-hover:text-white truncate">
-                                  {t.title}
+                                  {tool.title}
                                 </span>
                               </div>
                               <div className="text-[10px] text-slate-400 truncate mt-0.5 leading-tight">
-                                {t.shortDesc}
+                                {tool.shortDesc}
                               </div>
                               {badge && (
                                 <span className={`inline-block mt-1 text-[9px] font-medium px-1.5 py-0.2 rounded ${badge.bg} ${badge.text}`}>
@@ -345,29 +327,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <div className="text-[11px] font-bold uppercase tracking-wider text-pink-400 mb-2.5 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-pink-400"></span>
-                              <span>Edit & Anotasi</span>
+                              <span>{t.colEdit}</span>
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">4 Alat</span>
+                            <span className="text-[10px] text-slate-400 font-mono">4 {t.toolsCount}</span>
                           </div>
                           <div className="space-y-1">
-                            {editAndSignTools.map((t) => {
-                              const badge = TOOL_BADGES[t.id];
+                            {editAndSignTools.map((tool) => {
+                              const badge = TOOL_BADGES[tool.id]?.[currentLang];
                               return (
                                 <button
-                                  key={t.id}
-                                  onClick={() => handleToolClick(t.id)}
+                                  key={tool.id}
+                                  onClick={() => handleToolClick(tool.id)}
                                   className="w-full text-left p-2 rounded-xl hover:bg-slate-800/80 transition-colors group flex items-start gap-2.5 cursor-pointer"
                                 >
                                   <div
                                     className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                                    style={{ backgroundColor: `${t.accentColor}20` }}
+                                    style={{ backgroundColor: `${tool.accentColor}20` }}
                                   >
-                                    <ToolIcon name={t.icon} className="w-3.5 h-3.5" color={t.accentColor} />
+                                    <ToolIcon name={tool.icon} className="w-3.5 h-3.5" color={tool.accentColor} />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-1">
                                       <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
-                                        {t.title}
+                                        {tool.title}
                                       </span>
                                       {badge && (
                                         <span className={`text-[9px] px-1 rounded ${badge.bg} ${badge.text} shrink-0`}>
@@ -376,7 +358,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                                       )}
                                     </div>
                                     <div className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
-                                      {t.shortDesc}
+                                      {tool.shortDesc}
                                     </div>
                                   </div>
                                 </button>
@@ -392,29 +374,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 mb-2.5 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-                              <span>Tata Letak Halaman</span>
+                              <span>{t.colOrganize}</span>
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">6 Alat</span>
+                            <span className="text-[10px] text-slate-400 font-mono">6 {t.toolsCount}</span>
                           </div>
                           <div className="space-y-1">
-                            {organizeTools.map((t) => {
-                              const badge = TOOL_BADGES[t.id];
+                            {organizeTools.map((tool) => {
+                              const badge = TOOL_BADGES[tool.id]?.[currentLang];
                               return (
                                 <button
-                                  key={t.id}
-                                  onClick={() => handleToolClick(t.id)}
+                                  key={tool.id}
+                                  onClick={() => handleToolClick(tool.id)}
                                   className="w-full text-left p-2 rounded-xl hover:bg-slate-800/80 transition-colors group flex items-start gap-2.5 cursor-pointer"
                                 >
                                   <div
                                     className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                                    style={{ backgroundColor: `${t.accentColor}20` }}
+                                    style={{ backgroundColor: `${tool.accentColor}20` }}
                                   >
-                                    <ToolIcon name={t.icon} className="w-3.5 h-3.5" color={t.accentColor} />
+                                    <ToolIcon name={tool.icon} className="w-3.5 h-3.5" color={tool.accentColor} />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-1">
                                       <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
-                                        {t.title}
+                                        {tool.title}
                                       </span>
                                       {badge && (
                                         <span className={`text-[9px] px-1 rounded ${badge.bg} ${badge.text} shrink-0`}>
@@ -423,7 +405,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                                       )}
                                     </div>
                                     <div className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
-                                      {t.shortDesc}
+                                      {tool.shortDesc}
                                     </div>
                                   </div>
                                 </button>
@@ -439,29 +421,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-2.5 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                              <span>Konversi Dari PDF</span>
+                              <span>{t.colFromPdf}</span>
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">5 Alat</span>
+                            <span className="text-[10px] text-slate-400 font-mono">5 {t.toolsCount}</span>
                           </div>
                           <div className="space-y-1">
-                            {convertFromPdfTools.map((t) => {
-                              const badge = TOOL_BADGES[t.id];
+                            {convertFromPdfTools.map((tool) => {
+                              const badge = TOOL_BADGES[tool.id]?.[currentLang];
                               return (
                                 <button
-                                  key={t.id}
-                                  onClick={() => handleToolClick(t.id)}
+                                  key={tool.id}
+                                  onClick={() => handleToolClick(tool.id)}
                                   className="w-full text-left p-2 rounded-xl hover:bg-slate-800/80 transition-colors group flex items-start gap-2.5 cursor-pointer"
                                 >
                                   <div
                                     className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                                    style={{ backgroundColor: `${t.accentColor}20` }}
+                                    style={{ backgroundColor: `${tool.accentColor}20` }}
                                   >
-                                    <ToolIcon name={t.icon} className="w-3.5 h-3.5" color={t.accentColor} />
+                                    <ToolIcon name={tool.icon} className="w-3.5 h-3.5" color={tool.accentColor} />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-1">
                                       <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
-                                        {t.title}
+                                        {tool.title}
                                       </span>
                                       {badge && (
                                         <span className={`text-[9px] px-1 rounded ${badge.bg} ${badge.text} shrink-0`}>
@@ -470,7 +452,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                                       )}
                                     </div>
                                     <div className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
-                                      {t.shortDesc}
+                                      {tool.shortDesc}
                                     </div>
                                   </div>
                                 </button>
@@ -486,29 +468,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-2.5 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                              <span>Konversi Ke PDF</span>
+                              <span>{t.colToPdf}</span>
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">5 Alat</span>
+                            <span className="text-[10px] text-slate-400 font-mono">5 {t.toolsCount}</span>
                           </div>
                           <div className="space-y-1">
-                            {convertToPdfTools.map((t) => {
-                              const badge = TOOL_BADGES[t.id];
+                            {convertToPdfTools.map((tool) => {
+                              const badge = TOOL_BADGES[tool.id]?.[currentLang];
                               return (
                                 <button
-                                  key={t.id}
-                                  onClick={() => handleToolClick(t.id)}
+                                  key={tool.id}
+                                  onClick={() => handleToolClick(tool.id)}
                                   className="w-full text-left p-2 rounded-xl hover:bg-slate-800/80 transition-colors group flex items-start gap-2.5 cursor-pointer"
                                 >
                                   <div
                                     className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                                    style={{ backgroundColor: `${t.accentColor}20` }}
+                                    style={{ backgroundColor: `${tool.accentColor}20` }}
                                   >
-                                    <ToolIcon name={t.icon} className="w-3.5 h-3.5" color={t.accentColor} />
+                                    <ToolIcon name={tool.icon} className="w-3.5 h-3.5" color={tool.accentColor} />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-1">
                                       <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
-                                        {t.title}
+                                        {tool.title}
                                       </span>
                                       {badge && (
                                         <span className={`text-[9px] px-1 rounded ${badge.bg} ${badge.text} shrink-0`}>
@@ -517,7 +499,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                                       )}
                                     </div>
                                     <div className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
-                                      {t.shortDesc}
+                                      {tool.shortDesc}
                                     </div>
                                   </div>
                                 </button>
@@ -533,7 +515,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="mt-4 pt-3.5 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-slate-400">
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Privasi Terlindungi: Semua file diproses langsung di peramban tanpa pernah diunggah ke server</span>
+                      <span>{t.privacyNotice}</span>
                     </div>
                     <button
                       onClick={() => {
@@ -542,7 +524,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                     >
-                      <span>Lihat Katalog Lengkap di Halaman</span>
+                      <span>{t.viewCatalogPage}</span>
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -555,39 +537,65 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onScrollToFeatures}
             className="hover:text-white transition-colors cursor-pointer py-1"
           >
-            Keunggulan
+            {t.advantages}
           </button>
           <button
             onClick={onScrollToHowItWorks}
             className="hover:text-white transition-colors cursor-pointer py-1"
           >
-            Cara Kerja
+            {t.howItWorks}
           </button>
           <button
             onClick={onScrollToFaq}
             className="hover:text-white transition-colors cursor-pointer py-1"
           >
-            Tanya Jawab
+            {t.faq}
           </button>
         </nav>
 
-        {/* Zone 3: Actions + Mobile Menu Toggle */}
+        {/* Zone 3: Actions + Language Toggle + Mobile Menu Toggle */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Language Switcher Pill */}
+          <div className="flex items-center bg-slate-900 border border-slate-750 rounded-xl p-0.5 text-xs font-semibold">
+            <button
+              onClick={() => onChangeLang('en')}
+              className={`px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] sm:text-xs ${
+                currentLang === 'en'
+                  ? 'bg-rose-600 text-white shadow-sm font-bold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="English (Default)"
+            >
+              <span>EN</span>
+            </button>
+            <button
+              onClick={() => onChangeLang('id')}
+              className={`px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] sm:text-xs ${
+                currentLang === 'id'
+                  ? 'bg-rose-600 text-white shadow-sm font-bold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Bahasa Indonesia"
+            >
+              <span>ID</span>
+            </button>
+          </div>
+
           <button
             onClick={onOpenBrandModal}
             className="px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-            title="Lihat Rekomendasi Nama & Logo Resmi"
+            title="Brand Name & Logo Ideas"
           >
             <Sparkles className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span className="hidden sm:inline">Rekomendasi Nama</span>
-            <span className="sm:hidden text-[11px]">Brand</span>
+            <span className="hidden sm:inline">{t.brandIdea}</span>
+            <span className="sm:hidden text-[11px]">{t.brandIdeaShort}</span>
           </button>
 
           <button
             onClick={onScrollToTools}
             className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition-all shadow-md shadow-rose-950/40 flex items-center gap-1.5 whitespace-nowrap active:scale-95 cursor-pointer"
           >
-            <span>Mulai Gratis</span>
+            <span>{t.getStarted}</span>
             <ArrowRight className="w-3.5 h-3.5 hidden sm:inline" />
           </button>
 
@@ -595,7 +603,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
-            aria-label="Buka menu navigasi"
+            aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -617,7 +625,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="text"
                 value={mobileSearch}
                 onChange={(e) => setMobileSearch(e.target.value)}
-                placeholder="Cari dari 20 alat (misal: sign, merge)..."
+                placeholder={t.searchPlaceholder}
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-750 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500 placeholder-slate-400"
               />
               {mobileSearch && (
@@ -633,11 +641,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Category Filter Pills on Mobile */}
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none">
               {[
-                { id: 'all', label: 'Semua' },
-                { id: 'edit', label: 'Edit & TTD' },
-                { id: 'organize', label: 'Organisasi' },
-                { id: 'from-pdf', label: 'Dari PDF' },
-                { id: 'to-pdf', label: 'Ke PDF' },
+                { id: 'all', label: currentLang === 'en' ? 'All' : 'Semua' },
+                { id: 'edit', label: currentLang === 'en' ? 'Edit & Sign' : 'Edit & TTD' },
+                { id: 'organize', label: currentLang === 'en' ? 'Layout' : 'Organisasi' },
+                { id: 'from-pdf', label: currentLang === 'en' ? 'From PDF' : 'Dari PDF' },
+                { id: 'to-pdf', label: currentLang === 'en' ? 'To PDF' : 'Ke PDF' },
               ].map((c) => (
                 <button
                   key={c.id}
@@ -656,42 +664,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Quick Tools Grid in Mobile */}
             <div className="mb-4">
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>Pilih Alat PDF ({filteredMobileTools.length})</span>
+                <span>{t.mobileSelectTool} ({filteredMobileTools.length})</span>
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     onScrollToTools();
                   }}
-                  className="text-rose-400 hover:underline text-xs"
+                  className="text-rose-400 hover:underline text-xs cursor-pointer"
                 >
-                  Lihat di Halaman
+                  {t.viewCatalogPage}
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                {filteredMobileTools.map((t) => {
-                  const badge = TOOL_BADGES[t.id];
+                {filteredMobileTools.map((tool) => {
+                  const badge = TOOL_BADGES[tool.id]?.[currentLang];
                   return (
                     <button
-                      key={t.id}
-                      onClick={() => handleToolClick(t.id)}
+                      key={tool.id}
+                      onClick={() => handleToolClick(tool.id)}
                       className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-left flex items-center gap-2.5 hover:border-slate-700 transition-colors cursor-pointer"
                     >
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: `${t.accentColor}20` }}
+                        style={{ backgroundColor: `${tool.accentColor}20` }}
                       >
-                        <ToolIcon name={t.icon} className="w-4 h-4" color={t.accentColor} />
+                        <ToolIcon name={tool.icon} className="w-4 h-4" color={tool.accentColor} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="text-xs font-semibold text-slate-200 truncate">{t.title}</span>
+                          <span className="text-xs font-semibold text-slate-200 truncate">{tool.title}</span>
                           {badge && (
                             <span className={`text-[9px] px-1 rounded ${badge.bg} ${badge.text} shrink-0`}>
                               {badge.label}
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate">{t.shortDesc}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{tool.shortDesc}</div>
                       </div>
                     </button>
                   );
@@ -701,41 +709,67 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Navigation Section Links */}
             <div className="pt-3 border-t border-slate-800 space-y-1 text-xs font-semibold text-slate-300">
+              {/* Mobile Language Picker */}
+              <div className="py-2 px-3 flex items-center justify-between text-xs text-slate-300">
+                <span className="flex items-center gap-2 text-slate-400">
+                  <Globe className="w-4 h-4 text-rose-400" />
+                  <span>Language / Bahasa:</span>
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onChangeLang('en')}
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                      currentLang === 'en' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-slate-400'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => onChangeLang('id')}
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                      currentLang === 'id' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-slate-400'
+                    }`}
+                  >
+                    Indonesia
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   onScrollToFeatures();
                 }}
-                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 hover:text-white transition-colors"
+                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 hover:text-white transition-colors cursor-pointer"
               >
-                Keunggulan Layanan
+                {t.advantages}
               </button>
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   onScrollToHowItWorks();
                 }}
-                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 hover:text-white transition-colors"
+                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 hover:text-white transition-colors cursor-pointer"
               >
-                Cara Kerja
+                {t.howItWorks}
               </button>
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   onScrollToFaq();
                 }}
-                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 hover:text-white transition-colors"
+                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 hover:text-white transition-colors cursor-pointer"
               >
-                Tanya Jawab (FAQ)
+                {t.faq}
               </button>
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   onOpenBrandModal();
                 }}
-                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 text-rose-400 font-semibold transition-colors flex items-center justify-between"
+                className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-900 text-rose-400 font-semibold transition-colors flex items-center justify-between cursor-pointer"
               >
-                <span>Rekomendasi Nama & Logo Brand</span>
+                <span>{t.brandIdea}</span>
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
             </div>

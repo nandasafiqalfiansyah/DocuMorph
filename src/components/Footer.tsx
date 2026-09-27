@@ -1,9 +1,12 @@
 import React from 'react';
 import { Shield, Sparkles } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
+import { Language } from '../types';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface FooterProps {
   currentBrand: string;
+  currentLang: Language;
   onScrollToTools: () => void;
   onSelectToolById: (id: string) => void;
   onOpenBrandModal: () => void;
@@ -11,10 +14,13 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({
   currentBrand,
+  currentLang,
   onScrollToTools,
   onSelectToolById,
   onOpenBrandModal,
 }) => {
+  const t = TRANSLATIONS[currentLang].footer;
+
   return (
     <footer className="border-t border-slate-800 bg-[#090c14] text-slate-400 text-xs py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,17 +32,17 @@ export const Footer: React.FC<FooterProps> = ({
               <span>{currentBrand}</span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-xs">
-              Platform produktivitas 20 alat dokumen PDF serbaguna gratis tanpa perlu mendaftar akun dan tanpa batasan.
+              {t.desc}
             </p>
             <div className="mt-4 flex items-center gap-2 text-slate-400 text-[11px]">
               <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>100% Client-Side: Berkas aman di peramban</span>
+              <span>{t.clientSideNotice}</span>
             </div>
           </div>
 
           {/* Col 2: Edit & Kelola PDF */}
           <div>
-            <div className="text-slate-200 font-semibold mb-3">Edit & Kelola PDF</div>
+            <div className="text-slate-200 font-semibold mb-3">{t.colEditTitle}</div>
             <ul className="space-y-2">
               <li>
                 <button
@@ -51,7 +57,7 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => onSelectToolById('sign-pdf')}
                   className="hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  Sign PDF (Tanda Tangan)
+                  Sign PDF
                 </button>
               </li>
               <li>
@@ -67,7 +73,7 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => onSelectToolById('rotate-pdf')}
                   className="hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  Rotate PDF (Putar Halaman)
+                  Rotate PDF
                 </button>
               </li>
               <li>
@@ -75,15 +81,15 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => onSelectToolById('organize-pdf')}
                   className="hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  Organize PDF (Tata Urutan)
+                  Organize PDF
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Gabung & Konversi Dari PDF */}
+          {/* Col 3: Gabung & Kompres */}
           <div>
-            <div className="text-slate-200 font-semibold mb-3">Gabung & Kompres</div>
+            <div className="text-slate-200 font-semibold mb-3">{t.colOrganizeTitle}</div>
             <ul className="space-y-2">
               <li>
                 <button
@@ -130,7 +136,7 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Col 4: Konversi Format Lain */}
           <div>
-            <div className="text-slate-200 font-semibold mb-3">Konversi Format Lain</div>
+            <div className="text-slate-200 font-semibold mb-3">{t.colConvertTitle}</div>
             <ul className="space-y-2">
               <li>
                 <button
@@ -179,7 +185,7 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom hairline row */}
         <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500">
           <div>
-            © {new Date().getFullYear()} {currentBrand}. Solusi 20 Alat PDF Lengkap & Gratis.
+            {t.copyright(currentBrand, new Date().getFullYear())}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs">
             <button
@@ -187,17 +193,17 @@ export const Footer: React.FC<FooterProps> = ({
               className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer flex items-center gap-1"
             >
               <Sparkles className="w-3 h-3" />
-              <span>Rekomendasi Nama Brand</span>
+              <span>{t.brandIdeaLink}</span>
             </button>
             <span aria-hidden="true" className="text-slate-700">·</span>
             <button
               onClick={onScrollToTools}
               className="hover:text-slate-400 transition-colors cursor-pointer"
             >
-              Katalog 20 Alat
+              {t.catalogLink}
             </button>
             <span aria-hidden="true" className="text-slate-700">·</span>
-            <span>Bebas Akses Kapan Saja</span>
+            <span>{t.freeAccess}</span>
           </div>
         </div>
       </div>

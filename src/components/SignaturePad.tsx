@@ -1,11 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Eraser, Check, Upload } from 'lucide-react';
+import { Eraser, Upload } from 'lucide-react';
+import { Language } from '../types';
 
 interface SignaturePadProps {
+  currentLang?: Language;
   onSignatureChange: (dataUrl: string | null) => void;
 }
 
-export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange }) => {
+export const SignaturePad: React.FC<SignaturePadProps> = ({ currentLang = 'en', onSignatureChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [penColor, setPenColor] = useState('#0f172a'); // Black ink
@@ -13,6 +15,8 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
   const [hasDrawn, setHasDrawn] = useState(false);
   const [mode, setMode] = useState<'draw' | 'upload'>('draw');
   const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const isEn = currentLang === 'en';
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -117,7 +121,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
             mode === 'draw' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Gambar TTD
+          {isEn ? 'Draw Signature' : 'Gambar TTD'}
         </button>
         <button
           type="button"
@@ -126,7 +130,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
             mode === 'upload' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Unggah Gambar
+          {isEn ? 'Upload Image' : 'Unggah Gambar'}
         </button>
       </div>
 
@@ -135,11 +139,11 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
           {/* Controls Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-slate-400">Tinta:</span>
+              <span className="text-slate-400">{isEn ? 'Ink:' : 'Tinta:'}</span>
               {[
-                { label: 'Hitam', color: '#0f172a' },
-                { label: 'Biru Tua', color: '#1e3a8a' },
-                { label: 'Merah', color: '#b91c1c' },
+                { label: isEn ? 'Black' : 'Hitam', color: '#0f172a' },
+                { label: isEn ? 'Navy Blue' : 'Biru Tua', color: '#1e3a8a' },
+                { label: isEn ? 'Red' : 'Merah', color: '#b91c1c' },
               ].map((c) => (
                 <button
                   key={c.color}
@@ -155,7 +159,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-slate-400">Ketebalan:</span>
+              <span className="text-slate-400">{isEn ? 'Width:' : 'Ketebalan:'}</span>
               {[2, 3, 5].map((w) => (
                 <button
                   key={w}
@@ -173,10 +177,10 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
                 type="button"
                 onClick={clearCanvas}
                 className="ml-2 px-2.5 py-1 text-slate-400 hover:text-rose-400 flex items-center gap-1 cursor-pointer transition-colors"
-                title="Hapus gambar tanda tangan"
+                title={isEn ? 'Clear drawn signature' : 'Hapus gambar tanda tangan'}
               >
                 <Eraser className="w-3.5 h-3.5" />
-                <span>Hapus</span>
+                <span>{isEn ? 'Clear' : 'Hapus'}</span>
               </button>
             </div>
           </div>
@@ -198,8 +202,10 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
             />
             {!hasDrawn && (
               <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-slate-400 text-xs">
-                <span>Tulis atau gambar tanda tangan Anda di sini</span>
-                <span className="text-[10px] text-slate-300 mt-1">(Mendukung mouse, touchpad, dan layar sentuh)</span>
+                <span>{isEn ? 'Write or draw your signature in this box' : 'Tulis atau gambar tanda tangan Anda di sini'}</span>
+                <span className="text-[10px] text-slate-400 mt-1">
+                  {isEn ? '(Supports mouse, touchpad, and mobile touch screens)' : '(Mendukung mouse, touchpad, dan layar sentuh)'}
+                </span>
               </div>
             )}
           </div>
@@ -214,14 +220,18 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSignatureChange })
             className="hidden"
           />
           <Upload className="w-8 h-8 text-rose-400 mx-auto mb-2" />
-          <div className="text-xs text-slate-300 font-medium">Unggah file paraf / tanda tangan</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Format PNG transparan sangat disarankan</div>
+          <div className="text-xs text-slate-300 font-medium">
+            {isEn ? 'Upload initials or signature file' : 'Unggah file paraf / tanda tangan'}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-0.5">
+            {isEn ? 'Transparent PNG format is highly recommended' : 'Format PNG transparan sangat disarankan'}
+          </div>
           <button
             type="button"
             onClick={() => uploadInputRef.current?.click()}
             className="mt-3 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer"
           >
-            Pilih Gambar
+            {isEn ? 'Choose Image' : 'Pilih Gambar'}
           </button>
         </div>
       )}

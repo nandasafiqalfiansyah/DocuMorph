@@ -1,39 +1,23 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Language } from '../types';
+import { TRANSLATIONS } from '../i18n/translations';
 
-interface FaqItem {
-  q: string;
-  a: string;
+interface FAQProps {
+  currentLang: Language;
 }
 
-export const FAQ: React.FC = () => {
+export const FAQ: React.FC<FAQProps> = ({ currentLang }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const t = TRANSLATIONS[currentLang].faq;
 
-  const faqs: FaqItem[] = [
-    {
-      q: 'Apakah dokumen saya aman dan tidak diintip pihak lain?',
-      a: 'Sangat aman. Platform ini memproses file sepenuhnya di dalam browser Anda menggunakan teknologi WebAssembly dan JavaScript. Berkas tidak pernah diunggah atau disimpan di server mana pun, sehingga kerahasiaan dan privasi dokumen Anda 100% terjaga.',
-    },
-    {
-      q: 'Apakah benar-benar gratis tanpa perlu login?',
-      a: 'Ya, seluruh 20 alat lengkap dapat digunakan tanpa biaya, tanpa perlu mendaftar akun, dan tanpa batas langganan seumur hidup. Kami percaya alat utilitas dokumen dasar harus dapat diakses dengan mudah oleh semua orang.',
-    },
-    {
-      q: 'Bagaimana cara menambahkan tanda tangan elektronik (Sign PDF)?',
-      a: 'Anda dapat langsung menggambar tanda tangan basah di kanvas layar menggunakan kursor mouse, touchpad laptop, atau layar sentuh smartphone, atau mengunggah berkas gambar paraf transparan (PNG). Tanda tangan dapat ditempatkan di halaman dan sudut mana pun yang Anda tentukan.',
-    },
-    {
-      q: 'Apakah ada watermark pada dokumen yang dihasilkan?',
-      a: 'Tidak sama sekali. Semua dokumen hasil gabungan, pemisahan, maupun konversi bersih dari watermark, stempel, atau logo promosi.',
-    },
-    {
-      q: 'Bagaimana cara kerja kompresi PDF?',
-      a: 'Alat kompresi menghapus metadata berlebih, mengoptimalkan tabel objek internal, dan menyeimbangkan resolusi gambar tertanam agar ukuran file berkurang drastis tanpa merusak keterbacaan teks.',
-    },
-    {
-      q: 'Apakah bisa digunakan di smartphone (Android / iPhone)?',
-      a: 'Tentu saja. Antarmuka PDF Tools dirancang sepenuhnya responsif dan dapat dioperasikan langsung dari browser seluler Anda seperti Chrome, Safari, atau Firefox.',
-    },
+  const faqs = [
+    { q: t.q1, a: t.a1 },
+    { q: t.q2, a: t.a2 },
+    { q: t.q3, a: t.a3 },
+    { q: t.q4, a: t.a4 },
+    { q: t.q5, a: t.a5 },
+    { q: t.q6, a: t.a6 },
   ];
 
   return (
@@ -41,13 +25,13 @@ export const FAQ: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-2">
-            Pertanyaan Umum
+            {t.kicker}
           </div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight sm:text-4xl">
-            Tanya Jawab Seputar Layanan
+            {t.title}
           </h2>
           <p className="mt-2 text-sm text-slate-400">
-            Informasi lengkap seputar privasi, kompatibilitas, dan keamanan penggunaan.
+            {t.subtitle}
           </p>
         </div>
 

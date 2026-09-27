@@ -1,3 +1,5 @@
+export type Language = 'en' | 'id';
+
 export type ToolCategory = 'all' | 'edit-manage' | 'organize' | 'convert-from' | 'convert-to' | 'optimize';
 
 export interface ToolDef {

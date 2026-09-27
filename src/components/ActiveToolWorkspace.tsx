@@ -26,9 +26,10 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { ToolDef, ProcessedFileResult } from '../types';
+import { ToolDef, ProcessedFileResult, Language } from '../types';
 import { ToolIcon } from './ToolIcon';
 import { SignaturePad } from './SignaturePad';
+import { TRANSLATIONS } from '../i18n/translations';
 import {
   mergePDFs,
   splitPDF,
@@ -58,10 +59,12 @@ import {
 
 interface ActiveToolWorkspaceProps {
   tool: ToolDef;
+  currentLang: Language;
   onBack: () => void;
 }
 
-export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, onBack }) => {
+export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, currentLang, onBack }) => {
+  const t = TRANSLATIONS[currentLang].workspace;
   // File selection state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -308,13 +311,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
   // Main conversion pipeline
   const processDocument = async () => {
     if (selectedFiles.length === 0 && tool.id !== 'html-to-pdf') {
-      setErrorMessage('Silakan pilih berkas terlebih dahulu sebelum melanjutkan.');
+      setErrorMessage(t.errSelectFileFirst);
       return;
     }
 
     setIsProcessing(true);
     setProgressPct(5);
-    setProgressStatus('Menyiapkan dokumen...');
+    setProgressStatus(currentLang === 'id' ? 'Menyiapkan dokumen...' : 'Preparing document...');
     setErrorMessage(null);
 
     try {
@@ -325,7 +328,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
       switch (tool.id) {
         case 'merge-pdf': {
           if (selectedFiles.length < 2) {
-            throw new Error('Pilih minimal 2 file PDF untuk digabungkan.');
+            throw new Error(t.errMergeMinFiles);
           }
           outputBlob = await mergePDFs(selectedFiles, (pct, status) => {
             setProgressPct(pct);
@@ -474,7 +477,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
         // TOOL 14: SIGN PDF
         case 'sign-pdf': {
           if (!signatureDataUrl) {
-            throw new Error('Silakan buat tanda tangan Anda terlebih dahulu pada panel tanda tangan.');
+            throw new Error(t.errSignRequired);
           }
           outputBlob = await signPDF(
             selectedFiles[0],
@@ -483,7 +486,9 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               pageIndex: signPageIndex,
               position: signPosition,
               signDateText: signWithDate
-                ? `Ditandatangani digital pada: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}`
+                ? (currentLang === 'id'
+                    ? `Ditandatangani digital pada: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}`
+                    : `Digitally signed on: ${new Date().toLocaleDateString('en-US', { dateStyle: 'long' })}`)
                 : undefined,
             },
             (pct, status) => {
@@ -498,7 +503,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
         // TOOL 15: WATERMARK PDF
         case 'watermark-pdf': {
           if (!watermarkText.trim()) {
-            throw new Error('Masukkan teks watermark terlebih dahulu.');
+            throw new Error(t.errWatermarkRequired);
           }
           outputBlob = await watermarkPDF(
             selectedFiles[0],
@@ -550,7 +555,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
         // TOOL 18: REMOVE PAGES
         case 'remove-pages': {
           if (pagesToRemove.length === 0) {
-            throw new Error('Pilih minimal satu halaman yang ingin dihapus.');
+            throw new Error(t.errRemoveMinPage);
           }
           outputBlob = await removePagesPDF(selectedFiles[0], pagesToRemove, (pct, status) => {
             setProgressPct(pct);
@@ -563,7 +568,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
         // TOOL 19: EXTRACT PAGES
         case 'extract-pages': {
           if (pagesToExtract.length === 0) {
-            throw new Error('Pilih minimal satu halaman untuk diekstrak.');
+            throw new Error(t.errExtractMinPage);
           }
           outputBlob = await extractPagesPDF(selectedFiles[0], pagesToExtract, (pct, status) => {
             setProgressPct(pct);
@@ -661,12 +666,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
           className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-800 py-1.5 px-3 rounded-xl transition-all cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Kembali ke Semua Alat</span>
+          <span>{t.backToCatalog}</span>
         </button>
 
         <div className="text-[11px] sm:text-xs text-slate-400 flex items-center gap-1.5 bg-slate-900/50 py-1 px-2.5 rounded-lg border border-slate-800/60">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Mode Aman · 100% di Browser</span>
+          <span>{t.secureMode}</span>
         </div>
       </div>
 
@@ -697,7 +702,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               className="self-start sm:self-auto text-xs text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800 cursor-pointer disabled:opacity-50"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Ganti File</span>
+              <span>{t.changeFile}</span>
             </button>
           )}
         </div>
@@ -707,7 +712,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
           <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start gap-3">
             <Info className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
             <div>
-              <div className="font-semibold">Gagal memproses dokumen</div>
+              <div className="font-semibold">{t.failedProcess}</div>
               <div className="mt-0.5 text-xs text-rose-300/90">{errorMessage}</div>
             </div>
           </div>
@@ -739,15 +744,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 <UploadCloud className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-semibold text-white">
-                Pilih atau Tarik File ke Sini
+                {t.dropzoneTitle}
               </h3>
               <p className="mt-1 text-xs text-slate-400 max-w-sm mx-auto">
-                {tool.multiple
-                  ? 'Anda dapat memilih lebih dari satu file sekaligus'
-                  : 'Pilih satu dokumen untuk memulai proses'}
+                {tool.multiple ? t.dropzoneMultiple : t.dropzoneSingle}
               </p>
               <div className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-950 transition-all">
-                <span>Pilih Berkas dari Perangkat</span>
+                <span>{t.selectFileBtn}</span>
               </div>
             </div>
           </div>
@@ -758,22 +761,28 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
           <div className="mt-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs font-semibold text-slate-300">
-                Editor HTML & Kode Dokumen:
+                {t.htmlEditorTitle}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Template Cepat:</span>
+                <span className="text-xs text-slate-400">{t.quickTemplates}</span>
                 {[
                   {
-                    name: 'Faktur',
-                    code: `<h1>FAKTUR TAGIHAN</h1><p>No: INV-2026-889</p><p>Klien: Bpk. Hendra Wijaya</p><h3>Rincian Pembayaran</h3><p>• Jasa Desain Arsitektur: Rp 8.000.000</p><p>• Konsultasi Teknis: Rp 2.000.000</p><p><strong>Total: Rp 10.000.000</strong></p>`,
+                    name: t.tplInvoice,
+                    code: currentLang === 'id'
+                      ? `<h1>FAKTUR TAGIHAN</h1><p>No: INV-2026-889</p><p>Klien: Bpk. Hendra Wijaya</p><h3>Rincian Pembayaran</h3><p>• Jasa Desain Arsitektur: Rp 8.000.000</p><p>• Konsultasi Teknis: Rp 2.000.000</p><p><strong>Total: Rp 10.000.000</strong></p>`
+                      : `<h1>OFFICIAL INVOICE</h1><p>Invoice #: INV-2026-889</p><p>Client: Acme Global Corp</p><h3>Payment Details</h3><p>• Cloud Infrastructure Consulting: $8,000</p><p>• Full-Stack Software Integration: $2,000</p><p><strong>Total Amount: $10,000 (Paid in Full)</strong></p>`,
                   },
                   {
-                    name: 'Surat Resmi',
-                    code: `<h1>SURAT KETERANGAN RESMI</h1><p>Nomor: 042/SK/IX/2026</p><p>Dengan ini menerangkan bahwa dokumen ini telah diverifikasi sah secara elektronik.</p><p>Dibuat di Jakarta pada tanggal 25 September 2026.</p>`,
+                    name: t.tplOfficialLetter,
+                    code: currentLang === 'id'
+                      ? `<h1>SURAT KETERANGAN RESMI</h1><p>Nomor: 042/SK/IX/2026</p><p>Dengan ini menerangkan bahwa dokumen ini telah diverifikasi sah secara elektronik.</p><p>Dibuat di Jakarta pada tanggal 25 September 2026.</p>`
+                      : `<h1>OFFICIAL CERTIFICATE</h1><p>Ref: 042/CERT/2026</p><p>This is to certify that this electronic document is verified and officially approved.</p><p>Issued on September 25, 2026.</p>`,
                   },
                   {
-                    name: 'CV / Resume',
-                    code: `<h1>CURRICULUM VITAE</h1><h2>Ringkasan Profesional</h2><p>Pengembang Perangkat Lunak Berpengalaman dengan keahlian Full-Stack TypeScript dan Solusi Dokumen.</p><h2>Riwayat Pengalaman</h2><p>• Senior Engineer di PT Tech Global (2022 - Sekarang)</p><p>• Full Stack Developer di Solusi Digital (2019 - 2022)</p>`,
+                    name: t.tplResume,
+                    code: currentLang === 'id'
+                      ? `<h1>CURRICULUM VITAE</h1><h2>Ringkasan Profesional</h2><p>Pengembang Perangkat Lunak Berpengalaman dengan keahlian Full-Stack TypeScript dan Solusi Dokumen.</p><h2>Riwayat Pengalaman</h2><p>• Senior Engineer di PT Tech Global (2022 - Sekarang)</p><p>• Full Stack Developer di Solusi Digital (2019 - 2022)</p>`
+                      : `<h1>CURRICULUM VITAE</h1><h2>Professional Summary</h2><p>Experienced Senior Software Engineer specializing in modern web applications, TypeScript, and high-performance document processing.</p><h2>Experience</h2><p>• Lead Engineer at Tech Global (2022 - Present)</p><p>• Full Stack Developer at Cloud Solutions (2019 - 2022)</p>`,
                   },
                 ].map((tpl) => (
                   <button
@@ -792,16 +801,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               onChange={(e) => setHtmlContent(e.target.value)}
               rows={10}
               className="w-full p-4 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 font-mono text-xs focus:outline-none focus:border-rose-500 leading-relaxed"
-              placeholder="Tulis kode HTML atau teks di sini..."
+              placeholder={t.htmlPlaceholder}
             />
 
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>Atau unggah berkas .html dari komputer:</span>
+              <span>{t.orUploadHtml}</span>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="hover:text-white underline cursor-pointer"
               >
-                Pilih file .html
+                {t.chooseHtmlFile}
               </button>
               <input
                 ref={fileInputRef}
@@ -820,13 +829,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
             {/* File List */}
             <div>
               <div className="flex items-center justify-between mb-3 text-xs font-semibold text-slate-400">
-                <span>BERKAS TERPILIH ({selectedFiles.length})</span>
+                <span>{t.selectedFilesTitle(selectedFiles.length)}</span>
                 {tool.multiple && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
                   >
-                    + Tambah Berkas Lagi
+                    {t.addMoreFiles}
                   </button>
                 )}
                 <input
@@ -865,7 +874,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                           <button
                             onClick={() => moveFile(idx, 'up')}
                             disabled={idx === 0}
-                            title="Geser ke atas"
+                            title={t.moveUp}
                             className="p-1 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
                           >
                             <ArrowUp className="w-4 h-4" />
@@ -873,7 +882,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                           <button
                             onClick={() => moveFile(idx, 'down')}
                             disabled={idx === selectedFiles.length - 1}
-                            title="Geser ke bawah"
+                            title={t.moveDown}
                             className="p-1 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
                           >
                             <ArrowDown className="w-4 h-4" />
@@ -882,7 +891,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                       )}
                       <button
                         onClick={() => removeFile(idx)}
-                        title="Hapus file"
+                        title={t.removeFile}
                         className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer ml-2"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -896,7 +905,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
             {/* Visual Thumbnail Gallery (For Rotate, Organize, Remove, Extract, Sign) */}
             {isLoadingThumbs && (
               <div className="p-6 text-center text-xs text-slate-400 bg-slate-950/40 rounded-2xl border border-slate-800 animate-pulse">
-                Memuat pratinjau lembar halaman dokumen...
+                {t.loadingThumbnails}
               </div>
             )}
 
@@ -907,52 +916,52 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-5 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <PenTool className="w-4 h-4 text-pink-400" />
-                  <span>Pengaturan Anotasi & Teks:</span>
+                  <span>{t.editSettingsTitle}</span>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Teks Anotasi / Catatan:</label>
+                  <label className="text-xs text-slate-400 block mb-1">{t.editTextLabel}</label>
                   <input
                     type="text"
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     className="w-full py-2.5 px-3.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-pink-500 font-medium"
-                    placeholder="Contoh: DISETUJUI / DIVERIFIKASI RESMI"
+                    placeholder={currentLang === 'id' ? 'Contoh: DISETUJUI / DIVERIFIKASI RESMI' : 'e.g. APPROVED & VERIFIED'}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Posisi Peletakan:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.editPositionLabel}</label>
                     <select
                       value={editPosition}
                       onChange={(e) => setEditPosition(e.target.value as any)}
                       className="w-full py-2 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none"
                     >
-                      <option value="top-right">Kanan Atas</option>
-                      <option value="top-left">Kiri Atas</option>
-                      <option value="center">Tengah Halaman</option>
-                      <option value="bottom-right">Kanan Bawah</option>
-                      <option value="bottom-left">Kiri Bawah</option>
+                      <option value="top-right">{t.posTopRight}</option>
+                      <option value="top-left">{t.posTopLeft}</option>
+                      <option value="center">{t.posCenter}</option>
+                      <option value="bottom-right">{t.posBottomRight}</option>
+                      <option value="bottom-left">{t.posBottomLeft}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Ukuran Font:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.editFontSizeLabel}</label>
                     <select
                       value={editFontSize}
                       onChange={(e) => setEditFontSize(Number(e.target.value))}
                       className="w-full py-2 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none"
                     >
-                      <option value={10}>Kecil (10pt)</option>
-                      <option value={14}>Sedang (14pt)</option>
-                      <option value={18}>Besar (18pt)</option>
-                      <option value={24}>Sangat Besar (24pt)</option>
+                      <option value={10}>{t.fontSmall}</option>
+                      <option value={14}>{t.fontMedium}</option>
+                      <option value={18}>{t.fontLarge}</option>
+                      <option value={24}>{t.fontExtraLarge}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Warna Teks:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.editColorLabel}</label>
                     <div className="flex items-center gap-2 pt-1">
                       {['#e11d48', '#2563eb', '#059669', '#0f172a', '#d97706'].map((c) => (
                         <button
@@ -978,7 +987,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     className="rounded text-pink-600 focus:ring-0 cursor-pointer"
                   />
                   <label htmlFor="editBoxToggle" className="text-xs text-slate-300 cursor-pointer">
-                    Tambahkan bingkai kotak putih di sekeliling teks agar mudah terbaca
+                    {t.editBoxLabel}
                   </label>
                 </div>
               </div>
@@ -991,42 +1000,42 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-5 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <PenTool className="w-4 h-4 text-indigo-400" />
-                  <span>Bubuhkan Tanda Tangan Elektronik:</span>
+                  <span>{t.signSettingsTitle}</span>
                 </div>
 
-                <SignaturePad onSignatureChange={setSignatureDataUrl} />
+                <SignaturePad currentLang={currentLang} onSignatureChange={setSignatureDataUrl} />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Posisi Tanda Tangan:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.signPositionLabel}</label>
                     <select
                       value={signPosition}
                       onChange={(e) => setSignPosition(e.target.value as any)}
                       className="w-full py-2 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none"
                     >
-                      <option value="bottom-right">Pojok Kanan Bawah (Standar)</option>
-                      <option value="bottom-left">Pojok Kiri Bawah</option>
-                      <option value="center">Tengah Bawah</option>
+                      <option value="bottom-right">{t.signPosBottomRight}</option>
+                      <option value="bottom-left">{t.signPosBottomLeft}</option>
+                      <option value="center">{t.signPosCenter}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Target Halaman:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.signPageLabel}</label>
                     <select
                       value={signPageIndex}
                       onChange={(e) => setSignPageIndex(Number(e.target.value))}
                       className="w-full py-2 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none"
                     >
                       {thumbnails.length > 0 ? (
-                        thumbnails.map((t, idx) => (
+                        thumbnails.map((thumb, idx) => (
                           <option key={idx} value={idx}>
-                            Halaman {idx + 1} {idx === thumbnails.length - 1 ? '(Halaman Terakhir)' : ''}
+                            {t.signPageNum(idx + 1)} {idx === thumbnails.length - 1 ? `(${t.signPageLast})` : ''}
                           </option>
                         ))
                       ) : (
                         <>
-                          <option value={0}>Halaman 1</option>
-                          <option value={999}>Halaman Terakhir</option>
+                          <option value={0}>{t.signPageFirst}</option>
+                          <option value={999}>{t.signPageLast}</option>
                         </>
                       )}
                     </select>
@@ -1042,7 +1051,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     className="rounded text-indigo-600 focus:ring-0 cursor-pointer"
                   />
                   <label htmlFor="signDateToggle" className="text-xs text-slate-300 cursor-pointer">
-                    Sertakan stempel tanggal elektronik otomatis di bawah tanda tangan
+                    {t.signDateToggle}
                   </label>
                 </div>
               </div>
@@ -1055,11 +1064,11 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-5 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <Stamp className="w-4 h-4 text-teal-400" />
-                  <span>Pengaturan Watermark / Tanda Air:</span>
+                  <span>{t.watermarkSettingsTitle}</span>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Teks Watermark:</label>
+                  <label className="text-xs text-slate-400 block mb-1">{t.watermarkTextLabel}</label>
                   <input
                     type="text"
                     value={watermarkText}
@@ -1068,7 +1077,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     placeholder="CONFIDENTIAL"
                   />
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {['CONFIDENTIAL', 'RAHASIA', 'DRAF', 'SALINAN RESMI', 'CONTOH / SAMPLE'].map((preset) => (
+                    {(currentLang === 'id'
+                      ? ['CONFIDENTIAL', 'RAHASIA', 'DRAF', 'SALINAN RESMI', 'CONTOH / SAMPLE']
+                      : ['CONFIDENTIAL', 'SECRET', 'DRAFT', 'OFFICIAL COPY', 'SAMPLE']
+                    ).map((preset) => (
                       <button
                         key={preset}
                         type="button"
@@ -1084,7 +1096,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">
-                      Transparansi ({Math.round(watermarkOpacity * 100)}%):
+                      {t.watermarkOpacityLabel(Math.round(watermarkOpacity * 100))}
                     </label>
                     <input
                       type="range"
@@ -1099,7 +1111,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
 
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">
-                      Ukuran Teks ({watermarkSize}pt):
+                      {t.watermarkSizeLabel(watermarkSize)}
                     </label>
                     <input
                       type="range"
@@ -1113,7 +1125,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Kemiringan:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.watermarkAngleLabel}</label>
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -1122,7 +1134,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                           watermarkDiagonal ? 'bg-teal-500/20 border-teal-500 text-teal-300' : 'bg-slate-900 border-slate-800 text-slate-400'
                         }`}
                       >
-                        Diagonal 45°
+                        {t.watermarkDiagonal}
                       </button>
                       <button
                         type="button"
@@ -1131,7 +1143,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                           !watermarkDiagonal ? 'bg-teal-500/20 border-teal-500 text-teal-300' : 'bg-slate-900 border-slate-800 text-slate-400'
                         }`}
                       >
-                        Horizontal
+                        {t.watermarkHorizontal}
                       </button>
                     </div>
                   </div>
@@ -1147,7 +1159,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                     <RotateCw className="w-4 h-4 text-amber-400" />
-                    <span>Opsi Rotasi Halaman Dokumen:</span>
+                    <span>{t.rotateSettingsTitle}</span>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -1159,7 +1171,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                       className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <RotateCw className="w-3.5 h-3.5" />
-                      <span>Putar Semua ({rotateAllAngle}°)</span>
+                      <span>{t.rotateAllBtn(rotateAllAngle)}</span>
                     </button>
                   </div>
                 </div>
@@ -1167,10 +1179,10 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 {thumbnails.length > 0 && (
                   <div>
                     <div className="text-[11px] text-slate-400 mb-2">
-                      Klik tombol putar pada halaman individual untuk memutar per lembar:
+                      {t.rotateThumbnailHint}
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-2 bg-slate-950/40 rounded-xl border border-slate-800">
-                      {thumbnails.map((t, idx) => {
+                      {thumbnails.map((thumb, idx) => {
                         const deg = (pageRotations[idx] || 0) + (rotateMode === 'all' ? rotateAllAngle : 0);
                         return (
                           <div
@@ -1179,14 +1191,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                           >
                             <div className="relative w-full h-32 flex items-center justify-center overflow-hidden rounded bg-black/20">
                               <img
-                                src={t.dataUrl}
-                                alt={`Halaman ${idx + 1}`}
+                                src={thumb.dataUrl}
+                                alt={t.rotatePageNum(idx + 1)}
                                 className="max-h-full object-contain transition-transform duration-200"
                                 style={{ transform: `rotate(${deg}deg)` }}
                               />
                             </div>
                             <div className="mt-2 w-full flex items-center justify-between text-[11px] text-slate-300">
-                              <span>Hal {idx + 1}</span>
+                              <span>{t.rotatePageNum(idx + 1)}</span>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1194,7 +1206,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                                   rotateSinglePage(idx);
                                 }}
                                 className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 cursor-pointer"
-                                title="Putar 90 derajat"
+                                title={currentLang === 'id' ? 'Putar 90 derajat' : 'Rotate 90 degrees'}
                               >
                                 <RotateCw className="w-3.5 h-3.5" />
                               </button>
@@ -1216,14 +1228,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                     <LayoutGrid className="w-4 h-4 text-purple-400" />
-                    <span>Susun Ulang Urutan Halaman:</span>
+                    <span>{t.organizeSettingsTitle}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setPageOrder(thumbnails.map((_, i) => i))}
                     className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
                   >
-                    Reset Urutan
+                    {t.organizeReset}
                   </button>
                 </div>
 
@@ -1240,19 +1252,19 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                           <div className="w-full h-32 flex items-center justify-center overflow-hidden rounded bg-black/20">
                             <img
                               src={thumb.dataUrl}
-                              alt={`Halaman ${pageIdx + 1}`}
+                              alt={t.organizePageNum(pageIdx + 1)}
                               className="max-h-full object-contain"
                             />
                           </div>
                           <div className="mt-2 w-full flex items-center justify-between text-[11px] text-slate-300">
-                            <span className="font-semibold text-purple-400">Hal {currentPosition + 1}</span>
+                            <span className="font-semibold text-purple-400">{t.organizePageNum(currentPosition + 1)}</span>
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 disabled={currentPosition === 0}
                                 onClick={() => moveThumbnail(currentPosition, currentPosition - 1)}
                                 className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
-                                title="Geser ke kiri"
+                                title={currentLang === 'id' ? 'Geser ke kiri' : 'Move left'}
                               >
                                 <ChevronLeft className="w-3.5 h-3.5" />
                               </button>
@@ -1261,13 +1273,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                                 disabled={currentPosition === pageOrder.length - 1}
                                 onClick={() => moveThumbnail(currentPosition, currentPosition + 1)}
                                 className="p-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
-                                title="Geser ke kanan"
+                                title={currentLang === 'id' ? 'Geser ke kanan' : 'Move right'}
                               >
                                 <ChevronRight className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
-                          <div className="text-[9px] text-slate-500 mt-0.5">Asli: Hal {pageIdx + 1}</div>
+                          <div className="text-[9px] text-slate-500 mt-0.5">{t.organizeOriginalPage(pageIdx + 1)}</div>
                         </div>
                       );
                     })}
@@ -1284,16 +1296,16 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                     <FileX className="w-4 h-4 text-red-400" />
-                    <span>Pilih Halaman yang Ingin Dihapus:</span>
+                    <span>{t.removeSettingsTitle}</span>
                   </div>
                   <span className="text-xs text-red-400 font-medium">
-                    {pagesToRemove.length} halaman ditandai untuk dihapus
+                    {t.removeMarkedCount(pagesToRemove.length)}
                   </span>
                 </div>
 
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-2 bg-slate-950/40 rounded-xl border border-slate-800">
-                    {thumbnails.map((t, idx) => {
+                    {thumbnails.map((thumb, idx) => {
                       const isMarked = pagesToRemove.includes(idx);
                       return (
                         <div
@@ -1307,8 +1319,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                         >
                           <div className="w-full h-32 flex items-center justify-center overflow-hidden rounded bg-black/20 relative">
                             <img
-                              src={t.dataUrl}
-                              alt={`Halaman ${idx + 1}`}
+                              src={thumb.dataUrl}
+                              alt={t.removePageNum(idx + 1)}
                               className="max-h-full object-contain"
                             />
                             {isMarked && (
@@ -1318,7 +1330,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                             )}
                           </div>
                           <div className="mt-2 text-xs font-medium text-slate-300">
-                            Halaman {idx + 1}
+                            {t.removePageNum(idx + 1)}
                           </div>
                         </div>
                       );
@@ -1336,7 +1348,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                     <Copy className="w-4 h-4 text-blue-400" />
-                    <span>Pilih Halaman yang Ingin Diekstrak:</span>
+                    <span>{t.extractSettingsTitle}</span>
                   </div>
                   <div className="flex gap-2 text-xs">
                     <button
@@ -1344,7 +1356,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                       onClick={() => setPagesToExtract(thumbnails.map((_, i) => i))}
                       className="text-blue-400 hover:text-blue-300 cursor-pointer"
                     >
-                      Pilih Semua
+                      {t.extractSelectAll}
                     </button>
                     <span className="text-slate-600">·</span>
                     <button
@@ -1352,14 +1364,14 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                       onClick={() => setPagesToExtract([])}
                       className="text-slate-400 hover:text-white cursor-pointer"
                     >
-                      Kosongkan
+                      {t.extractClear}
                     </button>
                   </div>
                 </div>
 
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-2 bg-slate-950/40 rounded-xl border border-slate-800">
-                    {thumbnails.map((t, idx) => {
+                    {thumbnails.map((thumb, idx) => {
                       const isSelected = pagesToExtract.includes(idx);
                       return (
                         <div
@@ -1373,8 +1385,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                         >
                           <div className="w-full h-32 flex items-center justify-center overflow-hidden rounded bg-black/20 relative">
                             <img
-                              src={t.dataUrl}
-                              alt={`Halaman ${idx + 1}`}
+                              src={thumb.dataUrl}
+                              alt={t.extractPageNum(idx + 1)}
                               className="max-h-full object-contain"
                             />
                             {isSelected && (
@@ -1384,7 +1396,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                             )}
                           </div>
                           <div className="mt-2 text-xs font-semibold text-slate-200">
-                            Halaman {idx + 1}
+                            {t.extractPageNum(idx + 1)}
                           </div>
                         </div>
                       );
@@ -1401,12 +1413,12 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-5 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <Crop className="w-4 h-4 text-emerald-400" />
-                  <span>Potong Margin Area Halaman PDF:</span>
+                  <span>{t.cropSettingsTitle}</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Atas ({cropTop}%):</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.cropTop(cropTop)}</label>
                     <input
                       type="range"
                       min={0}
@@ -1417,7 +1429,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Bawah ({cropBottom}%):</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.cropBottom(cropBottom)}</label>
                     <input
                       type="range"
                       min={0}
@@ -1428,7 +1440,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Kiri ({cropLeft}%):</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.cropLeft(cropLeft)}</label>
                     <input
                       type="range"
                       min={0}
@@ -1439,7 +1451,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Kanan ({cropRight}%):</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.cropRight(cropRight)}</label>
                     <input
                       type="range"
                       min={0}
@@ -1463,7 +1475,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                         right: `${cropRight}%`,
                       }}
                     >
-                      Area Terpotong
+                      {t.cropVisualArea}
                     </div>
                   </div>
                 </div>
@@ -1475,7 +1487,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <Settings2 className="w-4 h-4 text-rose-400" />
-                  <span>Pengaturan Pemisahan Dokumen:</span>
+                  <span>{t.splitSettingsTitle}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
@@ -1486,8 +1498,8 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                         : 'border-slate-800 bg-slate-900 text-slate-400'
                     }`}
                   >
-                    <div className="font-semibold text-white">Semua Halaman (.ZIP)</div>
-                    <div className="mt-0.5 text-slate-400">Ekstrak setiap halaman menjadi file PDF terpisah</div>
+                    <div className="font-semibold text-white">{t.splitAllOptionTitle}</div>
+                    <div className="mt-0.5 text-slate-400">{t.splitAllOptionDesc}</div>
                   </button>
                   <button
                     onClick={() => setSplitMode('range')}
@@ -1497,15 +1509,15 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                         : 'border-slate-800 bg-slate-900 text-slate-400'
                     }`}
                   >
-                    <div className="font-semibold text-white">Rentang Halaman Tertentu</div>
-                    <div className="mt-0.5 text-slate-400">Pilih rentang halaman spesifik untuk diekstrak</div>
+                    <div className="font-semibold text-white">{t.splitRangeOptionTitle}</div>
+                    <div className="mt-0.5 text-slate-400">{t.splitRangeOptionDesc}</div>
                   </button>
                 </div>
 
                 {splitMode === 'range' && (
                   <div className="pt-2">
                     <label className="text-xs text-slate-400 block mb-1">
-                      Rentang Halaman (misal: 1-3, 5):
+                      {t.splitRangeLabel}
                     </label>
                     <input
                       type="text"
@@ -1523,24 +1535,24 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <Settings2 className="w-4 h-4 text-emerald-400" />
-                  <span>Tingkat Kompresi Dokumen:</span>
+                  <span>{t.compressSettingsTitle}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
                     {
                       id: 'low',
-                      label: 'Ringan',
-                      desc: 'Kualitas tertinggi, ukuran berkurang sedikit',
+                      label: t.compressLowTitle,
+                      desc: t.compressLowDesc,
                     },
                     {
                       id: 'medium',
-                      label: 'Rekomendasi',
-                      desc: 'Kompresi seimbang & kualitas tetap tajam',
+                      label: t.compressMedTitle,
+                      desc: t.compressMedDesc,
                     },
                     {
                       id: 'high',
-                      label: 'Ekstrem',
-                      desc: 'Ukuran paling kecil untuk hemat kuota/email',
+                      label: t.compressHighTitle,
+                      desc: t.compressHighDesc,
                     },
                   ].map((lvl) => (
                     <button
@@ -1564,31 +1576,31 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <Settings2 className="w-4 h-4 text-rose-400" />
-                  <span>Orientasi & Tata Letak Halaman PDF:</span>
+                  <span>{t.jpgToPdfSettingsTitle}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Orientasi Halaman:</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.jpgOrientationLabel}</label>
                     <select
                       value={imgOrientation}
                       onChange={(e) => setImgOrientation(e.target.value as any)}
                       className="w-full py-2 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none"
                     >
-                      <option value="auto">Otomatis (Sesuai Foto)</option>
-                      <option value="portrait">Potret (Tegak)</option>
-                      <option value="landscape">Lanskap (Melebar)</option>
+                      <option value="auto">{t.orientationAuto}</option>
+                      <option value="portrait">{t.orientationPortrait}</option>
+                      <option value="landscape">{t.orientationLandscape}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Batas Tepi (Margin):</label>
+                    <label className="text-xs text-slate-400 block mb-1">{t.jpgMarginLabel}</label>
                     <select
                       value={imgMargin}
                       onChange={(e) => setImgMargin(e.target.value as any)}
                       className="w-full py-2 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none"
                     >
-                      <option value="none">Tanpa Margin (Penuh)</option>
-                      <option value="small">Margin Kecil (Rapi)</option>
-                      <option value="normal">Margin Standar</option>
+                      <option value="none">{t.marginNone}</option>
+                      <option value="small">{t.marginSmall}</option>
+                      <option value="normal">{t.marginNormal}</option>
                     </select>
                   </div>
                 </div>
@@ -1621,26 +1633,26 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               >
                 <Sparkles className="w-4 h-4" />
                 <span>
-                  {tool.id === 'merge-pdf' && 'Gabungkan Dokumen PDF Sekarang'}
-                  {tool.id === 'split-pdf' && 'Pisahkan Dokumen PDF Sekarang'}
-                  {tool.id === 'compress-pdf' && 'Kompres Dokumen PDF Sekarang'}
-                  {tool.id === 'pdf-to-word' && 'Konversi ke Dokumen Word (.docx)'}
-                  {tool.id === 'pdf-to-excel' && 'Konversi ke Spreadsheet Excel (.xlsx)'}
-                  {tool.id === 'pdf-to-powerpoint' && 'Konversi ke Presentasi PowerPoint (.pptx)'}
-                  {tool.id === 'pdf-to-jpg' && 'Konversi Halaman ke Gambar JPG'}
-                  {tool.id === 'jpg-to-pdf' && 'Ubah Semua Gambar Menjadi PDF'}
-                  {tool.id === 'word-to-pdf' && 'Konversi Word ke Dokumen PDF'}
-                  {tool.id === 'powerpoint-to-pdf' && 'Konversi PowerPoint ke Dokumen PDF'}
-                  {tool.id === 'excel-to-pdf' && 'Konversi Excel ke Dokumen PDF'}
-                  {tool.id === 'html-to-pdf' && 'Buat Dokumen PDF dari HTML'}
-                  {tool.id === 'edit-pdf' && 'Terapkan Perubahan & Simpan PDF'}
-                  {tool.id === 'sign-pdf' && 'Tandatangani & Unduh PDF'}
-                  {tool.id === 'watermark-pdf' && 'Beri Watermark & Simpan PDF'}
-                  {tool.id === 'rotate-pdf' && 'Putar Halaman & Simpan PDF'}
-                  {tool.id === 'organize-pdf' && 'Simpan Urutan Halaman Baru'}
-                  {tool.id === 'remove-pages' && 'Hapus Halaman & Simpan PDF'}
-                  {tool.id === 'extract-pages' && 'Ekstrak Halaman Pilihan ke PDF'}
-                  {tool.id === 'crop-pdf' && 'Potong Margin & Simpan PDF'}
+                  {tool.id === 'merge-pdf' && t.actionMerge}
+                  {tool.id === 'split-pdf' && t.actionSplit}
+                  {tool.id === 'compress-pdf' && t.actionCompress}
+                  {tool.id === 'pdf-to-word' && t.actionPdfToWord}
+                  {tool.id === 'pdf-to-excel' && t.actionPdfToExcel}
+                  {tool.id === 'pdf-to-powerpoint' && t.actionPdfToPpt}
+                  {tool.id === 'pdf-to-jpg' && t.actionPdfToJpg}
+                  {tool.id === 'jpg-to-pdf' && t.actionJpgToPdf}
+                  {tool.id === 'word-to-pdf' && t.actionWordToPdf}
+                  {tool.id === 'powerpoint-to-pdf' && t.actionPptToPdf}
+                  {tool.id === 'excel-to-pdf' && t.actionExcelToPdf}
+                  {tool.id === 'html-to-pdf' && t.actionHtmlToPdf}
+                  {tool.id === 'edit-pdf' && t.actionEdit}
+                  {tool.id === 'sign-pdf' && t.actionSign}
+                  {tool.id === 'watermark-pdf' && t.actionWatermark}
+                  {tool.id === 'rotate-pdf' && t.actionRotate}
+                  {tool.id === 'organize-pdf' && t.actionOrganize}
+                  {tool.id === 'remove-pages' && t.actionRemove}
+                  {tool.id === 'extract-pages' && t.actionExtract}
+                  {tool.id === 'crop-pdf' && t.actionCrop}
                 </span>
               </button>
             )}
@@ -1654,21 +1666,21 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
               <CheckCircle2 className="w-9 h-9" />
             </div>
 
-            <h3 className="text-xl font-bold text-white">Proses Berhasil Selesai!</h3>
+            <h3 className="text-xl font-bold text-white">{t.resultSuccessTitle}</h3>
             <p className="text-xs text-slate-400 mt-1">
-              Dokumen Anda telah siap diunduh secara instan ke perangkat.
+              {t.resultSuccessDesc}
             </p>
 
             {/* Metrics card */}
             <div className="mt-5 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 max-w-md mx-auto text-left flex items-center justify-between">
               <div className="min-w-0 pr-3">
-                <div className="text-xs text-slate-400 font-medium">Nama Berkas:</div>
+                <div className="text-xs text-slate-400 font-medium">{t.resultFileName}</div>
                 <div className="text-sm font-semibold text-white truncate">
                   {result.fileName}
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-xs text-slate-400 font-medium">Ukuran Akhir:</div>
+                <div className="text-xs text-slate-400 font-medium">{t.resultFinalSize}</div>
                 <div className="text-sm font-mono font-bold text-emerald-400">
                   {formatBytes(result.newSize)}
                 </div>
@@ -1678,15 +1690,13 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
             {/* Compression savings badge if compress-pdf */}
             {tool.id === 'compress-pdf' && result.originalSize > 0 && (
               <div className="mt-3 text-xs text-emerald-400 font-medium">
-                Hemat{' '}
-                <span className="font-bold">
-                  {Math.max(
+                {t.resultSavedPct(
+                  Math.max(
                     0,
                     Math.round(((result.originalSize - result.newSize) / result.originalSize) * 100)
-                  )}
-                  %
-                </span>{' '}
-                dari ukuran berkas awal ({formatBytes(result.originalSize)})
+                  ),
+                  formatBytes(result.originalSize)
+                )}
               </div>
             )}
 
@@ -1694,7 +1704,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
             {tool.id === 'pdf-to-jpg' && renderedJpgs.length > 0 && (
               <div className="mt-6 text-left">
                 <div className="text-xs font-semibold text-slate-400 mb-3">
-                  PRATINJAU HALAMAN TERKONVERSI ({renderedJpgs.length}):
+                  {t.resultJpgPreviewTitle(renderedJpgs.length)}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-2 bg-slate-950/40 rounded-xl border border-slate-800">
                   {renderedJpgs.map((img) => (
@@ -1704,17 +1714,17 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                     >
                       <img
                         src={img.dataUrl}
-                        alt={`Halaman ${img.pageNumber}`}
+                        alt={t.rotatePageNum(img.pageNumber)}
                         className="w-full h-32 object-contain bg-white/5"
                       />
                       <div className="p-1.5 flex items-center justify-between text-[10px] text-slate-400 bg-slate-950">
-                        <span>Hal {img.pageNumber}</span>
+                        <span>{t.rotatePageNum(img.pageNumber)}</span>
                         <a
                           href={img.dataUrl}
-                          download={`halaman_${img.pageNumber}.jpg`}
+                          download={`page_${img.pageNumber}.jpg`}
                           className="text-rose-400 hover:underline"
                         >
-                          Unduh
+                          {t.resultDownloadSingle}
                         </a>
                       </div>
                     </div>
@@ -1730,7 +1740,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-sm shadow-xl shadow-emerald-950/50 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
               >
                 <Download className="w-4 h-4" />
-                <span>Unduh Berkas Hasil</span>
+                <span>{t.resultDownloadBtn}</span>
               </button>
 
               <button
@@ -1738,7 +1748,7 @@ export const ActiveToolWorkspace: React.FC<ActiveToolWorkspaceProps> = ({ tool, 
                 className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Proses Berkas Lain</span>
+                <span>{t.resultProcessAnotherBtn}</span>
               </button>
             </div>
           </div>

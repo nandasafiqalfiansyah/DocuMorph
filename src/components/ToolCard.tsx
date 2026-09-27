@@ -1,23 +1,20 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { ToolDef } from '../types';
+import { ToolDef, Language } from '../types';
 import { ToolIcon } from './ToolIcon';
+import { getLocalizedCategoryLabel } from '../data/tools';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface ToolCardProps {
   tool: ToolDef;
   index: number;
+  currentLang: Language;
   onSelect: (tool: ToolDef) => void;
 }
 
-export const ToolCard: React.FC<ToolCardProps> = ({ tool, index, onSelect }) => {
-  // Category human name
-  const categoryLabels: Record<string, string> = {
-    'edit-manage': 'Edit & Kelola PDF',
-    organize: 'Organisasi Dokumen',
-    'convert-from': 'Konversi dari PDF',
-    'convert-to': 'Konversi ke PDF',
-    optimize: 'Optimalisasi',
-  };
+export const ToolCard: React.FC<ToolCardProps> = ({ tool, index, currentLang, onSelect }) => {
+  const t = TRANSLATIONS[currentLang].catalog;
+  const categoryLabel = getLocalizedCategoryLabel(tool.category, currentLang);
 
   return (
     <div
@@ -49,9 +46,9 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, index, onSelect }) => 
 
         {/* Clean unboxed metadata */}
         <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-          <span>{categoryLabels[tool.category] || 'Alat PDF'}</span>
+          <span>{categoryLabel}</span>
           <span aria-hidden="true">·</span>
-          <span>Gratis</span>
+          <span>{t.freeBadge}</span>
         </div>
 
         {/* Title */}
@@ -67,8 +64,8 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, index, onSelect }) => 
 
       {/* Card action affordance */}
       <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs font-medium text-slate-400 group-hover:text-rose-400 transition-colors">
-        <span>Gunakan alat</span>
-        <span className="font-semibold text-slate-300 group-hover:text-white">Buka →</span>
+        <span>{t.useTool}</span>
+        <span className="font-semibold text-slate-300 group-hover:text-white">{t.openTool}</span>
       </div>
     </div>
   );

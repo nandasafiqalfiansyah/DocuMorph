@@ -1,30 +1,38 @@
 import React from 'react';
 import { ShieldCheck, UserX, Cpu, FileCheck2 } from 'lucide-react';
+import { Language } from '../types';
+import { TRANSLATIONS } from '../i18n/translations';
 
-export const Features: React.FC = () => {
+interface FeaturesProps {
+  currentLang: Language;
+}
+
+export const Features: React.FC<FeaturesProps> = ({ currentLang }) => {
+  const t = TRANSLATIONS[currentLang].features;
+
   const features = [
     {
       icon: ShieldCheck,
-      title: 'Privasi Terjamin 100%',
-      desc: 'Seluruh pemrosesan berkas dikerjakan langsung di dalam browser Anda. Dokumen sensitif tidak pernah diunggah atau disimpan di server luar.',
+      title: t.item1Title,
+      desc: t.item1Desc,
       color: '#10b981',
     },
     {
       icon: UserX,
-      title: 'Bebas Tanpa Perlu Login',
-      desc: 'Langsung gunakan seluruh 20 alat lengkap tanpa registrasi, tanpa email, dan tanpa batasan langganan berbayar.',
+      title: t.item2Title,
+      desc: t.item2Desc,
       color: '#f43f5e',
     },
     {
       icon: Cpu,
-      title: 'Pemrosesan Cepat & Ringan',
-      desc: 'Memanfaatkan performa mesin peramban modern untuk kompresi dan konversi instan tanpa antrean server.',
+      title: t.item3Title,
+      desc: t.item3Desc,
       color: '#3b82f6',
     },
     {
       icon: FileCheck2,
-      title: 'Format Dokumen Standar',
-      desc: 'Mendukung format resmi Microsoft Word (.docx), Excel (.xlsx), PowerPoint (.pptx), gambar resolusi tinggi, dan HTML.',
+      title: t.item4Title,
+      desc: t.item4Desc,
       color: '#f59e0b',
     },
   ];
@@ -34,13 +42,13 @@ export const Features: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-14">
           <div className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-2">
-            Mengapa Memilih Kami
+            {t.kicker}
           </div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight sm:text-4xl" style={{ textWrap: 'balance' }}>
-            Solusi Dokumen Modern yang Aman & Nyaman Digunakan
+            {t.title}
           </h2>
           <p className="mt-3 text-sm sm:text-base text-slate-400">
-            Didesain khusus untuk para profesional, mahasiswa, dan siapa saja yang membutuhkan pengelolaan dokumen tanpa repot.
+            {t.subtitle}
           </p>
         </div>
 
